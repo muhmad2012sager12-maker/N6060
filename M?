@@ -1,0 +1,201 @@
+-- [[ N60 Ultimate: V73 - Professional Intro Edition ]] --
+
+local lp = game:GetService("Players").LocalPlayer
+local rs = game:GetService("RunService")
+local ts = game:GetService("TweenService")
+
+-- تنظيف النسخ القديمة
+if game.CoreGui:FindFirstChild("N60_Ultimate_V73") then 
+    game.CoreGui.N60_Ultimate_V73:Destroy() 
+end
+
+local sg = Instance.new("ScreenGui", game.CoreGui)
+sg.Name = "N60_Ultimate_V73"
+
+-- [1] شاشة الدخول الفخمة (Intro)
+local introFrame = Instance.new("Frame", sg)
+introFrame.Size = UDim2.new(1, 0, 1, 0)
+introFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+introFrame.ZIndex = 100
+
+local introText = Instance.new("TextLabel", introFrame)
+introText.Size = UDim2.new(1, 0, 1, 0)
+introText.BackgroundTransparency = 1
+introText.Text = "شكراً لأنك جربت السكربت\nتنورنا بسيرفرنا N60"
+introText.TextColor3 = Color3.new(1, 1, 1)
+introText.Font = Enum.Font.GothamBold
+introText.TextSize = 25
+introText.TextTransparency = 1
+introText.ZIndex = 101
+
+-- تشغيل تأثير الدخول والخروج
+task.spawn(function()
+    -- ظهور النص
+    ts:Create(introText, TweenInfo.new(1), {TextTransparency = 0}):Play()
+    task.wait(3) -- مدة العرض
+    -- اختفاء الشاشة بالكامل
+    ts:Create(introText, TweenInfo.new(0.8), {TextTransparency = 1}):Play()
+    local fadeOut = ts:Create(introFrame, TweenInfo.new(1), {BackgroundTransparency = 1})
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        introFrame:Destroy()
+    end)
+end)
+
+-- [2] تصميم الواجهة الرئيسية (N60 الملون والنجوم)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 220, 0, 180)
+main.Position = UDim2.new(0.5, -110, 0.4, -90)
+main.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.ClipsDescendants = true
+main.Visible = false -- تبدأ مخفية حتى ينتهي الإنترو
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+
+task.delay(3.5, function() main.Visible = true end) -- تظهر بعد الإنترو
+
+local n60Title = Instance.new("TextLabel", main)
+n60Title.Size = UDim2.new(1, 0, 0, 60)
+n60Title.Text = "N60"
+n60Title.Font = Enum.Font.GothamBold
+n60Title.TextSize = 50
+n60Title.BackgroundTransparency = 1
+
+local open = Instance.new("TextButton", sg)
+open.Size = UDim2.new(0, 60, 0, 60)
+open.Position = UDim2.new(0, 15, 0, 15)
+open.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+open.Text = "N60"
+open.Font = Enum.Font.GothamBold
+open.TextSize = 18
+open.TextColor3 = Color3.new(1, 1, 1)
+open.Visible = false
+Instance.new("UICorner", open).CornerRadius = UDim.new(1, 0)
+local stroke = Instance.new("UIStroke", open)
+stroke.Thickness = 2
+task.delay(3.5, function() open.Visible = true end)
+
+-- محرك الـ RGB (تلوين الدائرة والعنوان)
+task.spawn(function()
+    local h = 0
+    while true do
+        h = h + 0.01
+        local col = Color3.fromHSV(h, 0.8, 1)
+        n60Title.TextColor3 = col
+        open.TextColor3 = col
+        stroke.Color = col
+        task.wait(0.02)
+        if h > 1 then h = 0 end
+    end
+end)
+
+open.Activated:Connect(function() main.Visible = not main.Visible end)
+
+-- [3] محرك المشي والسرعة 152
+local function CreateBtn(txt, pos)
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(0.85, 0, 0, 35)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundTransparency = 0.92
+    btn.Text = txt
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+local points = {
+    Vector3.new(201.03, 0, 2.81), Vector3.new(286.39, 0, 11.53),
+    Vector3.new(401.17, 0, 12.12), Vector3.new(546.4, 0, -1.41),
+    Vector3.new(759.24, 0, 3.27), Vector3.new(1074.91, 0, 8.26),
+    Vector3.new(1554.72, 0, 2.68), Vector3.new(2267.09, 0, 10.27),
+    Vector3.new(2611.29, 0, -2.11)
+}
+local currentIdx = 0
+local stationBtn = CreateBtn("المحطة التالية 🏃‍♂️", UDim2.new(0.075, 0, 0, 80))
+local isMoving = false
+local moveConn = nil
+
+stationBtn.Activated:Connect(function()
+    if isMoving then isMoving = false if moveConn then moveConn:Disconnect() end stationBtn.Text = "المحطة التالية 🏃‍♂️" return end
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        isMoving = true
+        stationBtn.Text = "جاري المشي..."
+        currentIdx = (currentIdx % #points) + 1
+        local target = points[currentIdx]
+        moveConn = rs.Heartbeat:Connect(function()
+            if not isMoving or not hrp.Parent then if moveConn then moveConn:Disconnect() end return end
+            local currentPos = hrp.Position
+            local targetFlat = Vector3.new(target.X, currentPos.Y, target.Z)
+            local diff = targetFlat - currentPos
+            if diff.Magnitude > 3 then
+                hrp.Velocity = diff.Unit * 152 + Vector3.new(0, hrp.Velocity.Y, 0)
+                hrp.CFrame = CFrame.lookAt(currentPos, targetFlat)
+            else
+                hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
+                hrp.CFrame = CFrame.new(targetFlat)
+                isMoving = false
+                if moveConn then moveConn:Disconnect() end
+                stationBtn.Text = "المحطة التالية 🏃‍♂️"
+            end
+        end)
+    end
+end)
+
+local speedBtn = CreateBtn("سرعة (152) ⚡", UDim2.new(0.075, 0, 0, 125))
+local spdOn = false
+speedBtn.Activated:Connect(function()
+    spdOn = not spdOn
+    speedBtn.BackgroundColor3 = spdOn and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 255, 255)
+end)
+
+rs.Heartbeat:Connect(function()
+    local char = lp.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if spdOn and hrp and hum and hum.MoveDirection.Magnitude > 0 and not isMoving then
+        hrp.Velocity = Vector3.new(hum.MoveDirection.X * 152, hrp.Velocity.Y, hum.MoveDirection.Z * 152)
+    end
+end)
+
+-- اللمس التلقائي
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if lp.Character then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    obj.HoldDuration = 0
+                    if (lp.Character:GetPivot().Position - obj.Parent:GetPivot().Position).Magnitude < 12 then
+                        obj:InputHoldBegin() task.wait() obj:InputHoldEnd()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- نجوم الخلفية
+local function CreateStar()
+    local star = Instance.new("Frame", main)
+    star.BorderSizePixel = 0
+    star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    star.Size = UDim2.new(0, math.random(1, 2), 0, math.random(1, 2))
+    star.Position = UDim2.new(math.random(), 0, -0.1, 0)
+    Instance.new("UICorner", star).CornerRadius = UDim.new(1, 0)
+    local fallSpeed = math.random(15, 30) / 100
+    task.spawn(function()
+        while star and star.Parent do
+            star.Position = star.Position + UDim2.new(0, 0, 0, fallSpeed)
+            if star.Position.Y.Offset > main.AbsoluteSize.Y then star.Position = UDim2.new(math.random(), 0, -0.1, 0) end
+            rs.RenderStepped:Wait()
+        end
+    end)
+end
+for i = 1, 30 do CreateStar() end
